@@ -5,6 +5,16 @@ Created on Tue Mar  9 03:00:49 2021
 @author: Egemen G
 """
 
+"""
+The dataset which I used for, I tried to predict Absolute Humidity values from other variables.
+https://archive.ics.uci.edu/ml/datasets/Air+Quality
+In this data set values were in string format, I converted them into float then process began.
+To obtain the best regression model i used pickle.
+prediction accuracy is nearly 92% in this model. I belive, it can be increased with different methods.
+"""
+
+
+
 import pandas as pd
 import numpy as np
 
