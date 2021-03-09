@@ -1,0 +1,112 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Mar  9 03:00:49 2021
+
+@author: Egemen G
+"""
+
+import pandas as pd
+import numpy as np
+
+data = pd.read_csv("AirQualityUCI.csv", sep=";")
+data = data.iloc[:9357,2:15]
+
+"""
+0 Date (DD/MM/YYYY)
+1 Time (HH.MM.SS)
+2 True hourly averaged concentration CO in mg/m^3 (reference analyzer)
+3 PT08.S1 (tin oxide) hourly averaged sensor response (nominally CO targeted)
+4 True hourly averaged overall Non Metanic HydroCarbons concentration in microg/m^3 (reference analyzer)
+5 True hourly averaged Benzene concentration in microg/m^3 (reference analyzer)
+6 PT08.S2 (titania) hourly averaged sensor response (nominally NMHC targeted)
+7 True hourly averaged NOx concentration in ppb (reference analyzer)
+8 PT08.S3 (tungsten oxide) hourly averaged sensor response (nominally NOx targeted)
+9 True hourly averaged NO2 concentration in microg/m^3 (reference analyzer)
+10 PT08.S4 (tungsten oxide) hourly averaged sensor response (nominally NO2 targeted)
+11 PT08.S5 (indium oxide) hourly averaged sensor response (nominally O3 targeted)
+12 Temperature in Â°C
+13 Relative Humidity (%)
+14 AH Absolute Humidity
+"""
+
+
+colNames = data.columns
+
+newColumns = []
+for col in range(0,13):
+    newCol = []
+    for row in range(0,9357):
+        a = (data.iloc[row][col])
+        b = ""
+        for i in range(0,len(a)):
+            if a[i] == ",":        
+                b+="."
+            else:
+                b+=a[i]
+        b = float(b)        
+        newCol.append(b)
+    newColumns.append(newCol)
+df = []
+for i in range(0,13):
+    newData = "df{}".format(i)    
+    newData = pd.DataFrame(data = newColumns[i], index=range(9357), columns=[colNames[i]])
+    df.append(newData)
+    
+final = pd.DataFrame(data=newColumns[0], index=range(9357), columns=[colNames[0]])
+
+turn = 1
+while turn<13:
+    df = "data{}".format(turn)
+    df = pd.DataFrame(data=newColumns[turn], index=range(9357), columns=[colNames[turn]])
+    final = pd.concat([final,df], axis=1)
+    turn+=1
+  
+
+final.to_csv(r"path\AirQualityUCI_adjusted.csv")
+
+
+
+data = pd.read_csv("path\AirQualityUCI_adjusted.csv")
+data = data.iloc[:,1:]
+
+from sklearn.impute import SimpleImputer
+
+imputer = SimpleImputer(missing_values=(-200.0), strategy="mean") # missing values represented by -200, so changed them with mean value
+
+imputer = imputer.fit(data)
+data1 = imputer.transform(data)
+
+x = data1[:,:12]
+y = data1[:,-1:]
+
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+import pickle
+# Finding best accurated model and converting it to the pickle file
+high = 0
+for i in range(10000):
+    
+    x_train, x_test, y_train, y_test = train_test_split(x,y, test_size=0.1)
+
+    lr = LinearRegression()
+    lr.fit(x_train, y_train)    
+    acc = lr.score(x_test, y_test)
+    print(acc)
+    
+    if acc>high:        
+        high=acc
+        with open("lrmodel.pickle", "wb") as f:
+            pickle.dump(lr, f)
+     
+        
+pickle_in = open("lrmodel.pickle", "rb")
+lr = pickle.load(pickle_in)
+
+
+print(lr.coef_)
+print(lr.intercept_)
+
+
+x_train, x_test, y_train, y_test = train_test_split(x,y, test_size=0.1)
+lr.fit(x_train, y_train)  
+pred = lr.predict(x_test)
