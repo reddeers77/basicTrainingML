@@ -1,0 +1,135 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Mar 10 23:21:47 2021
+
+@author: Egemen G
+"""
+Data link
+# link : https://archive.ics.uci.edu/ml/datasets/Car+Evaluation
+Prediction of car class value, based on the some related attributes
+
+"""
+Attribute Information:
+
+Class Values:
+
+unacc, acc, good, vgood
+
+Attributes:
+
+buying: vhigh, high, med, low.
+maint: vhigh, high, med, low.
+doors: 2, 3, 4, 5more.
+persons: 2, 4, more.
+lug_boot: small, med, big.
+safety: low, med, high.
+"""
+
+import pandas as pd
+
+# Preparation of data 
+orginal = pd.read_csv("car.csv")
+orginal.columns = ["buying","maint","doors","persons","lug_boot","safety","class"]
+
+data = pd.read_csv("car.csv")
+data.columns = ["buying","maint","doors","persons","lug_boot","safety","class"]
+
+from sklearn import preprocessing
+
+
+# I used LabelEncoder, and changed the classes_ values of each one.
+# Because it encodes them alphabetically, but my wish is not alphabetically
+le = preprocessing.LabelEncoder()
+le.classes_ = ["low","med","high","vhigh"]
+le.fit(data.iloc[:,0])
+data.iloc[:,0] = le.transform(data.iloc[:,0])
+
+le.fit(data.iloc[:,1])
+le.classes_ = ["low","med","high","vhigh"]
+data.iloc[:,1] = le.transform(data.iloc[:,1])
+
+for i in range(0,len(data)):
+    if (data.iloc[i,2]=="5more"):
+        data.iloc[i,2]="5"
+      
+for i in range(0,len(data)):
+    if (data.iloc[i,3]=="more"):
+        data.iloc[i,3]="5"
+
+le.fit(data.iloc[:,4])
+le.classes_ = ["small","med","big"]
+data.iloc[:,4] = le.transform(data.iloc[:,4])
+
+le.fit(data.iloc[:,5])
+le.classes_ = ["low","med","high"]
+data.iloc[:,5] = le.transform(data.iloc[:,5])
+
+le.fit(data.iloc[:,6])
+le.classes_ = ["unacc","acc","good","vgood"]
+data.iloc[:,6] = le.transform(data.iloc[:,6])
+
+data.to_csv("carsRegulated.csv")
+
+
+regulated = pd.read_csv("carsRegulated.csv")
+regulated = regulated.iloc[:,1:]
+
+x = regulated.iloc[:,:6]
+y = regulated.iloc[:,-1:]
+
+from sklearn.model_selection import train_test_split
+
+x_train, x_test, y_train, y_test = train_test_split(x,y, test_size=0.1, random_state=0)
+
+from sklearn.neighbors import KNeighborsClassifier
+
+# Creating a list with accuracy values
+accuracies = []
+
+for i in range(1,201):
+
+    knn = KNeighborsClassifier(n_neighbors=i)
+    knn.fit(x_train, y_train)
+    score = knn.score(x_test, y_test)
+    accuracies.append(score)
+          
+    
+# Plotting of the accuracies with corresponding to neingbors numbers
+import matplotlib.pyplot as plt
+
+plt.plot(range(1,201), accuracies)
+plt.show()
+
+# Deciding to the best neighbors numbers based on accuracy values from accuracies list
+neighbor = 0
+max_ac = 0
+
+i=0
+while i < len(accuracies):
+    
+    ac = accuracies[i]
+        
+    if ac >= max_ac:
+        max_ac = ac
+        neighbor = i+1
+        
+    else:
+        pass
+    i+=1
+    
+knn = KNeighborsClassifier(n_neighbors= neighbor)
+knn.fit(x_train, y_train)
+predicted = knn.predict(x_test)
+
+# Showing the values with Confusion Matrix 
+from sklearn.metrics import confusion_matrix,accuracy_score
+
+cm = confusion_matrix(y_test, predicted)
+print(cm)
+print(max_ac)
+
+# Also this function is can be used to show accuracy value
+"""
+score = accuracy_score(y_test, predicted)
+print(score)
+"""
